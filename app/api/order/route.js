@@ -1,25 +1,18 @@
-import {NextResponse as R} from 'next/server';
-import {db,save,clean,tg,carriers,names} from '../../../lib/server';
-import {BOOKS,FR,total} from '../../../lib/data';
+import {NextResponse as R} from 'next/server';import {col} from '../../../lib/mongo';import {clean,tg} from '../../../lib/server';
+import {FR} from '../../../lib/data';import {fees,push} from '../../../lib/ecotrack';import {PRICE,FEE} from '../../../lib/config';
 const hits=new Map();
 export async function POST(req){
- const ip=req.headers.get('x-forwarded-for')||'x';const n=(hits.get(ip)||0)+1;hits.set(ip,n);setTimeout(()=>hits.set(ip,(hits.get(ip)||1)-1),6e4);
- if(n>5)return R.json({ok:false,error:'محاولات كثيرة'},{status:429});
- const b=await req.json().catch(()=>({}));
- const phone=String(b.phone||'').replace(/\D/g,''),ids=(b.items||[]).filter(i=>BOOKS.some(x=>x.id===i));
- const w=+b.wilaya,type=b.type==='desk'?'desk':'home';
- if(!/^0[567]\d{8}$/.test(phone)||clean(b.name).length<3||!(w>=1&&w<=58)||!b.commune||!ids.length||(type==='home'&&clean(b.address).length<4))
+ const ip=req.headers.get('x-forwarded-for')||'x',n=(hits.get(ip)||0)+1;hits.set(ip,n);setTimeout(()=>hits.set(ip,(hits.get(ip)||1)-1),6e4);
+ if(n>5)return R.json({ok:false},{status:429});
+ const b=await req.json().catch(()=>({})),phone=String(b.phone||'').replace(/\D/g,''),w=+b.wilaya,type=b.type==='desk'?'desk':'home';
+ if(!/^0[567]\d{8}$/.test(phone)||clean(b.name).length<3||!(w>=1&&w<=58)||!clean(b.commune)||(type==='home'&&clean(b.address).length<4)||(type==='desk'&&!b.deskCode))
   return R.json({ok:false,error:'بيانات ناقصة'},{status:400});
- const d=db(),rec=d[phone]||(d[phone]={phone,orders:[]});
- const dup=rec.orders.some(x=>x.status!=='lead'&&Date.now()-x.at<864e5);
- const o={ref:'BEM'+Date.now().toString(36).toUpperCase(),at:Date.now(),name:clean(b.name),phone,wilaya:w,commune:clean(b.commune),type,address:clean(b.address),
-  items:ids,products:names(ids),count:ids.length,total:total(ids,type),status:dup?'duplicate':'new'};
- rec.name=o.name;rec.orders=rec.orders.filter(x=>x.ref!=='LEAD');rec.orders.push(o);
- let ship='';const c=process.env.AUTO_CARRIER;
- if(!dup&&c&&carriers[c]){try{const r=await carriers[c](o);o.status=r.ok?'shipped':'ship_failed';ship=r.ok?`📦 أُرسل إلى ${c}`:`❌ فشل ${c} (${r.status})`}catch{o.status='ship_failed';ship='❌ خطأ شركة التوصيل'}}
- save(d);
- await tg(`${dup?'⚠️ <b>طلب مكرر</b> (نفس الرقم خلال 24 ساعة)':'🛒 <b>طلب جديد</b>'}\n🔖 ${o.ref}\n👤 ${o.name}\n📞 ${phone} (طلبات الرقم: ${rec.orders.length})\n📍 ${FR[w-1]} - ${o.commune}\n🚚 ${type==='desk'?'مكتب التوصيل':'المنزل'}${o.address?' | '+o.address:''}\n📚 ${o.products}\n💰 ${o.total} دج\n${ship}`);
- return R.json({ok:true,ref:o.ref});
-}
-export async function GET(req){
- const k=process.env.ADMIN_KEY;return k&&req.nextUrl.searchParams.get('key')===k?R.json(db()):R.json({},{status:401})}
+ const fe=await fees(w).catch(()=>FEE),fee=fe[type],orders=await col('orders');
+ const dup=await orders.findOne({phone,status:{$ne:'lead'},createdAt:{$gt:new Date(Date.now()-864e5)}});
+ const o={ref:'BEM'+Date.now().toString(36).toUpperCase(),phone,name:clean(b.name),wilaya:w,wilayaName:FR[w-1],commune:clean(b.commune),type,
+  desk:type==='desk'?{code:clean(b.deskCode),name:clean(b.deskName)}:null,address:clean(b.address),fee,total:PRICE+fee,status:dup?'duplicate':'new',note:'',tracking:'',createdAt:new Date(),history:[]};
+ await orders.insertOne(o);(await col('leads')).deleteOne({phone}).catch(()=>{});
+ let ship='';if(!dup&&process.env.AUTO_PUSH==='1'){try{const t=await push(o);await orders.updateOne({ref:o.ref},{$set:{status:'shipped',tracking:t}});ship='📦 أُرسل إلى Ecotrack '+t}catch{ship='❌ فشل الإرسال إلى Ecotrack'}}
+ const cnt=await orders.countDocuments({phone});
+ await tg(`${dup?'⚠️ <b>طلب مكرر</b> (24 ساعة)':'🛒 <b>طلب جديد</b>'}\n🔖 ${o.ref}\n👤 ${o.name}\n📞 ${phone} (طلبات الرقم: ${cnt})\n📍 ${o.wilayaName} - ${o.commune}\n🚚 ${type==='desk'?'مكتب: '+o.desk.name:'المنزل: '+o.address}\n💰 ${o.total} دج\n${ship}`);
+ return R.json({ok:true,ref:o.ref})}

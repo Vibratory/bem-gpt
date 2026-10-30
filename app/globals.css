@@ -48,3 +48,16 @@ footer{background:var(--ink);color:#dfe6f6;margin-top:52px;padding:28px 0;text-a
 @media(scripting:none){.rv{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.rv{opacity:1;transform:none}}
 @media(max-width:760px){.hg{grid-template-columns:1fr}.fan{height:280px}.trust{grid-template-columns:1fr 1fr}.mob{display:block}.two{grid-template-columns:1fr}}
+.hg{grid-template-columns:1.05fr 1fr;grid-template-areas:"t f" "n f";align-items:start}
+.ht{grid-area:t}.fc{grid-area:f}.fan{grid-area:n;height:300px}
+.big{font:400 40px var(--display);color:var(--red);margin:6px 0}.big small{font:500 15px var(--body);color:#445}
+.pk{margin:0 0 6px;background:var(--sand);padding:6px 12px;border-radius:8px}
+.bk{cursor:default;padding:10px}.bk:hover{transform:none}.bk figcaption{display:grid}.bk span{font-size:13px}
+@media(max-width:760px){.hg{grid-template-columns:1fr;grid-template-areas:"t" "f" "n"}.big{font-size:32px}}
+.ad{max-width:980px;margin:auto;padding:20px;font-family:var(--body)}.ad h1{font-size:30px}.login{max-width:340px;display:grid;gap:10px;margin-top:60px}
+.tabs,.chips{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.tabs button,.chips button{border:2px solid var(--navy);background:#fff;border-radius:99px;padding:4px 14px;font:700 14px var(--body);cursor:pointer}
+.tabs .on,.chips .on{background:var(--navy);color:#fff}.sr{margin:6px 0 14px}.am{background:var(--hl,#ffe45c);padding:8px 12px;border-radius:8px;cursor:pointer}
+.pg2{background:#fff;border-radius:14px;padding:10px 14px;margin-bottom:14px}.ph{display:flex;gap:12px;align-items:center;font-size:18px}.ph em{background:var(--red);color:#fff;border-radius:99px;padding:0 10px;font-style:normal;font-size:13px}
+.oc{border-top:1px solid #dde4f0;padding:8px 0;display:grid;gap:4px;font-size:15px}.oc.s-duplicate{opacity:.6}.oc.s-cancelled{opacity:.5}
+.ac{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.ac select{width:auto;padding:4px 8px;font-size:15px}.ac button,.ac a{border:2px solid var(--navy);background:#fff;color:var(--navy);border-radius:8px;padding:3px 12px;font:700 14px var(--body);text-decoration:none;cursor:pointer}
+a.wb{background:#25d366!important;border-color:#25d366!important;color:#fff!important}.oc input{padding:6px 10px;font-size:14px}
